@@ -16,7 +16,7 @@ import (
 )
 
 type options struct {
-	service         liboptions.ServiceOptions
+	service        liboptions.ServiceOptions
 	hmacSecretFile string
 }
 

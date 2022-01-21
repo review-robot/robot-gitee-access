@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/opensourceways/community-robot-lib/giteeclient"
-    sdk "github.com/opensourceways/go-gitee/gitee"
+	sdk "github.com/opensourceways/go-gitee/gitee"
 	"github.com/sirupsen/logrus"
 )
 
