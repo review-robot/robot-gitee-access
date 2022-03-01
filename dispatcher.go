@@ -3,23 +3,22 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"github.com/opensourceways/community-robot-lib/broker"
+	"github.com/opensourceways/go-gitee/gitee"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/opensourceways/community-robot-lib/giteeclient"
 	"github.com/sirupsen/logrus"
 )
 
 type dispatcher struct {
 	agent *demuxConfigAgent
 
-	hmac func() string
-
 	// ec is an http client used for dispatching events
-	// to external plugin services.
+	// to external service services.
 	ec http.Client
 	// Tracks running handlers for graceful shutdown
 	wg sync.WaitGroup
@@ -29,24 +28,26 @@ func (d *dispatcher) wait() {
 	d.wg.Wait() // Handle remaining requests
 }
 
-// ServeHTTP validates an incoming webhook and puts it into the event channel.
-func (d *dispatcher) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	eventType, eventGUID, payload, _, ok := giteeclient.ValidateWebhook(w, r, d.hmac)
-	if !ok {
-		return
-	}
-	fmt.Fprint(w, "Event received. Have a nice day.")
+// HandlerMsg validates an incoming webhook and puts it into the event channel.
+func (d *dispatcher) HandlerMsg(event broker.Event) error {
+	msg := event.Message()
 
-	l := logrus.WithFields(
-		logrus.Fields{
-			"event-type": eventType,
-			"event-id":   eventGUID,
-		},
-	)
-
-	if err := d.dispatch(eventType, payload, r.Header, l); err != nil {
-		l.WithError(err).Error()
+	eventType, uuid, payload, err := parseWebHookInfoFromMsg(msg)
+	if err != nil {
+		return err
 	}
+
+	l := logrus.WithFields(logrus.Fields{
+		"event-type": eventType,
+		"event_id":   uuid,
+	})
+
+	h := http.Header{}
+	for k, v := range msg.Header {
+		h.Add(k, v)
+	}
+
+	return d.dispatch(eventType, payload, h, l)
 }
 
 func (d *dispatcher) dispatch(eventType string, payload []byte, h http.Header, l *logrus.Entry) error {
@@ -54,37 +55,37 @@ func (d *dispatcher) dispatch(eventType string, payload []byte, h http.Header, l
 	repo := ""
 
 	switch eventType {
-	case giteeclient.EventTypeNote:
-		e, err := giteeclient.ConvertToNoteEvent(payload)
+	case gitee.EventTypeNote:
+		e, err := gitee.ConvertToNoteEvent(payload)
 		if err != nil {
 			return err
 		}
 
-		org, repo = giteeclient.GetOwnerAndRepoByNoteEvent(&e)
+		org, repo = e.GetOrgRepo()
 
-	case giteeclient.EventTypeIssue:
-		e, err := giteeclient.ConvertToIssueEvent(payload)
+	case gitee.EventTypeIssue:
+		e, err := gitee.ConvertToIssueEvent(payload)
 		if err != nil {
 			return err
 		}
 
-		org, repo = giteeclient.GetOwnerAndRepoByIssueEvent(&e)
+		org, repo = e.GetOrgRepo()
 
-	case giteeclient.EventTypePR:
-		e, err := giteeclient.ConvertToPREvent(payload)
+	case gitee.EventTypePR:
+		e, err := gitee.ConvertToPREvent(payload)
 		if err != nil {
 			return err
 		}
 
-		org, repo = giteeclient.GetOwnerAndRepoByPREvent(&e)
+		org, repo = e.GetOrgRepo()
 
-	case giteeclient.EventTypePush:
-		e, err := giteeclient.ConvertToPushEvent(payload)
+	case gitee.EventTypePush:
+		e, err := gitee.ConvertToPushEvent(payload)
 		if err != nil {
 			return err
 		}
 
-		org, repo = giteeclient.GetOwnerAndRepoByPushEvent(&e)
+		org, repo = e.GetOrgRepo()
 
 	default:
 		l.Debug("Ignoring unknown event type")

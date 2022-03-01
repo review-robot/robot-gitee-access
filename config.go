@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/opensourceways/community-robot-lib/config"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
@@ -18,11 +19,13 @@ func (c *configuration) Validate() error {
 func (c *configuration) SetDefault() {}
 
 type accessConfig struct {
-	// Plugins is a map of repositories (eg "k/k") to lists of plugin names.
+	// RepoPlugins list of plugins needed to configure the repository
 	RepoPlugins map[string][]string `json:"repo_plugins,omitempty"`
 
 	// Plugins is a list available plugins.
 	Plugins []pluginConfig `json:"plugins,omitempty"`
+
+	Broker config.BrokerConfig `json:"broker,omitempty"`
 }
 
 func (a accessConfig) validate() error {
@@ -105,13 +108,13 @@ func (a accessConfig) getDemux() map[string]eventsDemux {
 }
 
 type pluginConfig struct {
-	// Name of the plugin.
+	// Name of the service.
 	Name string `json:"name" required:"true"`
 
-	// Endpoint is the location of the plugin.
+	// Endpoint is the location of the service.
 	Endpoint string `json:"endpoint" required:"true"`
 
-	// Events are the events that this plugin can handle and should be forward to it.
+	// Events are the events that this service can handle and should be forward to it.
 	// If no events are specified, everything is sent.
 	Events []string `json:"events,omitempty"`
 }
