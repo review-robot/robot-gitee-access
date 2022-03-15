@@ -6,17 +6,17 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/opensourceways/community-robot-lib/broker"
 	"github.com/opensourceways/community-robot-lib/config"
 	"github.com/opensourceways/community-robot-lib/interrupts"
 	"github.com/opensourceways/community-robot-lib/logrusutil"
+	"github.com/opensourceways/community-robot-lib/mq"
 	liboptions "github.com/opensourceways/community-robot-lib/options"
 	"github.com/opensourceways/community-robot-lib/utils"
 	"github.com/sirupsen/logrus"
 )
 
 type options struct {
-	service        liboptions.ServiceOptions
+	service liboptions.ServiceOptions
 }
 
 func (o *options) Validate() error {
@@ -57,13 +57,13 @@ func main() {
 		agent: &agent,
 	}
 
-	if err := initBroker(configAgent); err != nil {
+	if err := initMQ(configAgent); err != nil {
 		logrus.WithError(err).Fatal("Error init broker.")
 	}
 
-	defer broker.Disconnect()
+	defer mq.Disconnect()
 
-	subscriber, err := broker.Subscribe("gitee-webhook", handleGiteeMessage(&d), broker.Queue(component))
+	subscriber, err := mq.Subscribe("gitee-webhook", handleGiteeMessage(&d), mq.Queue(component))
 	if err != nil {
 		logrus.WithError(err).Fatal("error subscribe gitee-webhook topic.")
 	}

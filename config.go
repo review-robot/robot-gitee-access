@@ -25,7 +25,7 @@ type accessConfig struct {
 	// Plugins is a list available plugins.
 	Plugins []pluginConfig `json:"plugins,omitempty"`
 
-	Broker config.BrokerConfig `json:"broker,omitempty"`
+	Broker config.MQConfig `json:"broker,omitempty"`
 }
 
 func (a accessConfig) validate() error {

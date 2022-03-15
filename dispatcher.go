@@ -3,14 +3,14 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/opensourceways/community-robot-lib/broker"
-	"github.com/opensourceways/go-gitee/gitee"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/opensourceways/community-robot-lib/mq"
+	"github.com/opensourceways/go-gitee/gitee"
 	"github.com/sirupsen/logrus"
 )
 
@@ -29,7 +29,7 @@ func (d *dispatcher) wait() {
 }
 
 // HandlerMsg validates an incoming webhook and puts it into the event channel.
-func (d *dispatcher) HandlerMsg(event broker.Event) error {
+func (d *dispatcher) HandlerMsg(event mq.Event) error {
 	msg := event.Message()
 
 	eventType, uuid, payload, err := parseWebHookInfoFromMsg(msg)

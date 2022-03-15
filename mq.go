@@ -2,12 +2,13 @@ package main
 
 import (
 	"errors"
-	"github.com/opensourceways/community-robot-lib/broker"
+
 	"github.com/opensourceways/community-robot-lib/config"
+	"github.com/opensourceways/community-robot-lib/mq"
 	"github.com/sirupsen/logrus"
 )
 
-func initBroker(agent config.ConfigAgent) error {
+func initMQ(agent config.ConfigAgent) error {
 	cfg := &configuration{}
 	_, c := agent.GetConfig()
 
@@ -20,27 +21,27 @@ func initBroker(agent config.ConfigAgent) error {
 		return err
 	}
 
-	err = broker.Init(
-		broker.Addresses(cfg.Config.Broker.Addresses...),
-		broker.TLSConfig(tlsConfig),
-		broker.Log(logrus.WithField("module", "broker")),
-		broker.ErrorHandler(errorHandler()),
+	err = mq.Init(
+		mq.Addresses(cfg.Config.Broker.Addresses...),
+		mq.TLSConfig(tlsConfig),
+		mq.Log(logrus.WithField("module", "broker")),
+		mq.ErrorHandler(errorHandler()),
 	)
 
 	if err != nil {
 		return err
 	}
 
-	return broker.Connect()
+	return mq.Connect()
 }
 
-func handleGiteeMessage(d *dispatcher) broker.Handler {
-	return func(event broker.Event) error {
+func handleGiteeMessage(d *dispatcher) mq.Handler {
+	return func(event mq.Event) error {
 		return d.HandlerMsg(event)
 	}
 }
 
-func parseWebHookInfoFromMsg(msg *broker.Message) (eventType, uuid string, payload []byte, err error) {
+func parseWebHookInfoFromMsg(msg *mq.Message) (eventType, uuid string, payload []byte, err error) {
 	if msg == nil {
 		err = errors.New("get a nil msg from broker")
 		return
@@ -71,8 +72,8 @@ func parseWebHookInfoFromMsg(msg *broker.Message) (eventType, uuid string, paylo
 	return
 }
 
-func errorHandler() broker.Handler {
-	return func(event broker.Event) error {
+func errorHandler() mq.Handler {
+	return func(event mq.Event) error {
 		l := logrus.WithFields(logrus.Fields{
 			"msg error handle": "default handler",
 		})
